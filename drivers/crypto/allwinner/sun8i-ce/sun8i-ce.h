@@ -237,7 +237,6 @@ struct sun8i_cipher_req_ctx {
 };
 
 struct sun8i_tfm_ctx {
-	struct crypto_engine_ctx enginectx;
 	u32 *key;
 	u32 keylen;
 	u32 keymode;
@@ -246,7 +245,6 @@ struct sun8i_tfm_ctx {
 };
 
 struct sun8i_tfm_rsa_ctx {
-	struct crypto_engine_ctx enginectx;
 	struct sun8i_ss_ctx *ss;
 	struct rsa_key rsa_key;
 	/* used for fallback */
