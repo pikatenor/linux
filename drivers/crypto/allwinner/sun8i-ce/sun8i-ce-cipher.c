@@ -218,7 +218,7 @@ static int handle_cipher_request(struct crypto_engine *engine,
 	struct skcipher_request *breq = container_of(areq, struct skcipher_request, base);
 
 	err = sun8i_ce_cipher(breq);
-	crypto_finalize_skcipher_request(engine, breq, err);
+	crypto_finalize_cipher_request(engine, breq, err);
 
 	return 0;
 }
@@ -234,7 +234,7 @@ int sun8i_ce_skdecrypt(struct skcipher_request *areq)
 	rctx->op_dir = CE_DECRYPTION;
 	rctx->flow = e;
 
-	return crypto_transfer_skcipher_request_to_engine(engine, areq);
+	return crypto_transfer_cipher_request_to_engine(engine, areq);
 }
 
 int sun8i_ce_skencrypt(struct skcipher_request *areq)
@@ -248,7 +248,7 @@ int sun8i_ce_skencrypt(struct skcipher_request *areq)
 	rctx->op_dir = CE_ENCRYPTION;
 	rctx->flow = e;
 
-	return crypto_transfer_skcipher_request_to_engine(engine, areq);
+	return crypto_transfer_cipher_request_to_engine(engine, areq);
 }
 
 int sun8i_ce_cipher_init(struct crypto_tfm *tfm)
@@ -264,6 +264,9 @@ int sun8i_ce_cipher_init(struct crypto_tfm *tfm)
 	algt = container_of(alg, struct sun8i_ss_alg_template, alg.skcipher);
 	op->ss = algt->ss;
 
+	int e = get_engine_number(op->ss);
+	op->ss->chanlist[e].engine->cipher_one_request = handle_cipher_request;
+
 	sktfm->reqsize = sizeof(struct sun8i_cipher_req_ctx);
 
 	op->fallback_tfm = crypto_alloc_skcipher(name, 0, CRYPTO_ALG_ASYNC |
@@ -273,10 +276,6 @@ int sun8i_ce_cipher_init(struct crypto_tfm *tfm)
 			name, PTR_ERR(op->fallback_tfm));
 		return PTR_ERR(op->fallback_tfm);
 	}
-
-	op->enginectx.op.do_one_request = handle_cipher_request;
-	op->enginectx.op.prepare_request = NULL;
-	op->enginectx.op.unprepare_request = NULL;
 
 	return 0;
 }

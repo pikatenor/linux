@@ -39,7 +39,7 @@ static int handle_rsa_request(struct crypto_engine *engine,
 	opdir = rsa_req_ctx->op_dir;
 
 	err = sun8i_rsa_operation(req, opdir);
-	crypto_finalize_akcipher_request(engine, req, err);
+	crypto_finalize_cipher_request(engine, req, err);
 	return 0;
 }
 
@@ -52,7 +52,11 @@ int sun8i_rsa_init(struct crypto_akcipher *tfm)
 	algt = container_of(alg, struct sun8i_ss_alg_template, alg.rsa);
 	ctx->ss = algt->ss;
 
+  int e = get_engine_number(ctx->ss);
+  ctx->ss->chanlist[e].engine->cipher_one_request = handle_rsa_request;
+
 	dev_info(ctx->ss->dev, "%s\n", __func__);
+
 
 	ctx->fallback = crypto_alloc_akcipher("rsa", 0, CRYPTO_ALG_NEED_FALLBACK);
 	if (IS_ERR(ctx->fallback)) {
@@ -63,9 +67,6 @@ int sun8i_rsa_init(struct crypto_akcipher *tfm)
 
 	akcipher_set_reqsize(tfm, sizeof(struct sun8i_rsa_req_ctx));
 
-	ctx->enginectx.op.do_one_request = handle_rsa_request;
-	ctx->enginectx.op.prepare_request = NULL;
-	ctx->enginectx.op.unprepare_request = NULL;
 	return 0;
 }
 
@@ -366,7 +367,7 @@ int sun8i_rsa_encrypt(struct akcipher_request *req)
 
 	dev_info(ctx->ss->dev, "%s\n", __func__);
 	rsa_req_ctx->op_dir = CE_ENCRYPTION;
-	return crypto_transfer_akcipher_request_to_engine(engine, req);
+	return crypto_transfer_cipher_request_to_engine(engine, req);
 
 	return sun8i_rsa_operation(req, CE_ENCRYPTION);
 }
@@ -385,7 +386,7 @@ int sun8i_rsa_decrypt(struct akcipher_request *req)
 		 ctx->rsa_key.n_sz,
 		 req->src_len, req->dst_len);
 	rsa_req_ctx->op_dir = CE_DECRYPTION;
-	return crypto_transfer_akcipher_request_to_engine(engine, req);
+	return crypto_transfer_cipher_request_to_engine(engine, req);
 
 	return sun8i_rsa_operation(req, CE_DECRYPTION);
 }
@@ -406,7 +407,7 @@ int sun8i_rsa_verify(struct akcipher_request *req)
 
 	dev_info(ctx->ss->dev, "%s\n", __func__);
 	rsa_req_ctx->op_dir = CE_ENCRYPTION;
-	return crypto_transfer_akcipher_request_to_engine(engine, req);
+	return crypto_transfer_cipher_request_to_engine(engine, req);
 
 	sun8i_rsa_operation(req, CE_ENCRYPTION);
 	return 0;
